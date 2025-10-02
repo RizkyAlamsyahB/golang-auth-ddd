@@ -3,17 +3,16 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
 
-	"github.com/rizkyalamsyahb/library-golang/config"
-	"github.com/rizkyalamsyahb/library-golang/internal/application/usecase"
-	"github.com/rizkyalamsyahb/library-golang/internal/domain/auth"
-	"github.com/rizkyalamsyahb/library-golang/internal/infrastructure/database"
-	httpRouter "github.com/rizkyalamsyahb/library-golang/internal/infrastructure/http"
-	"github.com/rizkyalamsyahb/library-golang/internal/infrastructure/repository"
-	"github.com/rizkyalamsyahb/library-golang/internal/interfaces/http/handler"
-	"github.com/rizkyalamsyahb/library-golang/internal/interfaces/http/middleware"
-	"github.com/rizkyalamsyahb/library-golang/pkg/jwt"
+	"github.com/rizkyalamsyah_dev/library-golang/config"
+	"github.com/rizkyalamsyah_dev/library-golang/internal/application/usecase"
+	"github.com/rizkyalamsyah_dev/library-golang/internal/domain/auth"
+	"github.com/rizkyalamsyah_dev/library-golang/internal/infrastructure/database"
+	httpRouter "github.com/rizkyalamsyah_dev/library-golang/internal/infrastructure/http"
+	"github.com/rizkyalamsyah_dev/library-golang/internal/infrastructure/repository"
+	"github.com/rizkyalamsyah_dev/library-golang/internal/interfaces/http/handler"
+	"github.com/rizkyalamsyah_dev/library-golang/internal/interfaces/http/middleware"
+	"github.com/rizkyalamsyah_dev/library-golang/pkg/jwt"
 )
 
 func main() {
@@ -52,7 +51,7 @@ func main() {
 
 	// Setup router
 	router := httpRouter.NewRouter(authHandler, authMiddleware)
-	mux := router.Setup()
+	engine := router.Setup()
 
 	// Start server
 	addr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)
@@ -63,7 +62,7 @@ func main() {
 	fmt.Println("   GET    http://localhost:8080/api/auth/profile (Protected)")
 	fmt.Println("   GET    http://localhost:8080/health")
 
-	if err := http.ListenAndServe(addr, mux); err != nil {
+	if err := engine.Run(addr); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }

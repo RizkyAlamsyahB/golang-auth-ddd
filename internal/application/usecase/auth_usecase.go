@@ -3,9 +3,9 @@ package usecase
 import (
 	"context"
 
-	"github.com/rizkyalamsyahb/library-golang/internal/application/dto"
-	"github.com/rizkyalamsyahb/library-golang/internal/domain/auth"
-	"github.com/rizkyalamsyahb/library-golang/pkg/jwt"
+"github.com/rizkyalamsyah_dev/library-golang/internal/application/dto"
+    "github.com/rizkyalamsyah_dev/library-golang/internal/domain/auth"
+    "github.com/rizkyalamsyah_dev/library-golang/pkg/jwt"
 )
 
 type AuthUseCase struct {

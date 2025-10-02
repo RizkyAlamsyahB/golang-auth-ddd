@@ -6,7 +6,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/rizkyalamsyahb/library-golang/config"
+    "github.com/rizkyalamsyah_dev/library-golang/config"
 )
 
 func NewMySQL(cfg *config.Config) (*sql.DB, error) {

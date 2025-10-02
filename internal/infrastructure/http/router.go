@@ -3,44 +3,54 @@ package http
 import (
 	"net/http"
 
-	"github.com/gorilla/mux"
-	"github.com/rizkyalamsyahb/library-golang/internal/interfaces/http/handler"
-	"github.com/rizkyalamsyahb/library-golang/internal/interfaces/http/middleware"
+	"github.com/gin-gonic/gin"
+	"github.com/rizkyalamsyah_dev/library-golang/internal/interfaces/http/handler"
+	"github.com/rizkyalamsyah_dev/library-golang/internal/interfaces/http/middleware"
 )
 
 type Router struct {
-	mux            *mux.Router
+	engine         *gin.Engine
 	authHandler    *handler.AuthHandler
 	authMiddleware *middleware.AuthMiddleware
 }
 
 func NewRouter(authHandler *handler.AuthHandler, authMiddleware *middleware.AuthMiddleware) *Router {
+	// Set Gin mode
+	gin.SetMode(gin.ReleaseMode) // Change to gin.DebugMode for development
+
 	return &Router{
-		mux:            mux.NewRouter(),
+		engine:         gin.New(),
 		authHandler:    authHandler,
 		authMiddleware: authMiddleware,
 	}
 }
 
-func (r *Router) Setup() *mux.Router {
-	// API v1
-	api := r.mux.PathPrefix("/api").Subrouter()
+func (r *Router) Setup() *gin.Engine {
+	// Add default middleware
+	r.engine.Use(gin.Logger())
+	r.engine.Use(gin.Recovery())
 
 	// Health check
-	r.mux.HandleFunc("/health", func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status": "ok"}`))
-	}).Methods("GET")
+	r.engine.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	// API v1
+	api := r.engine.Group("/api")
 
 	// Auth routes (public)
-	authRoutes := api.PathPrefix("/auth").Subrouter()
-	authRoutes.HandleFunc("/register", r.authHandler.Register).Methods("POST")
-	authRoutes.HandleFunc("/login", r.authHandler.Login).Methods("POST")
+	authRoutes := api.Group("/auth")
+	{
+		authRoutes.POST("/register", r.authHandler.Register)
+		authRoutes.POST("/login", r.authHandler.Login)
+	}
 
 	// Protected routes (require authentication)
-	protectedRoutes := api.PathPrefix("/auth").Subrouter()
-	protectedRoutes.Use(r.authMiddleware.Authenticate)
-	protectedRoutes.HandleFunc("/profile", r.authHandler.GetProfile).Methods("GET")
+	protectedRoutes := api.Group("/auth")
+	protectedRoutes.Use(r.authMiddleware.Authenticate())
+	{
+		protectedRoutes.GET("/profile", r.authHandler.GetProfile)
+	}
 
-	return r.mux
+	return r.engine
 }

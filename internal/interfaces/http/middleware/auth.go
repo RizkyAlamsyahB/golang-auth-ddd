@@ -1,18 +1,16 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
-	"github.com/rizkyalamsyahb/library-golang/internal/interfaces/http/response"
-	"github.com/rizkyalamsyahb/library-golang/pkg/jwt"
+	"github.com/gin-gonic/gin"
+	"github.com/rizkyalamsyah_dev/library-golang/internal/interfaces/http/response"
+	"github.com/rizkyalamsyah_dev/library-golang/pkg/jwt"
 )
 
-type contextKey string
-
-const UserIDKey contextKey = "user_id"
-const UserEmailKey contextKey = "user_email"
+const UserIDKey = "user_id"
+const UserEmailKey = "user_email"
 
 type AuthMiddleware struct {
 	jwtService *jwt.JWTService
@@ -22,19 +20,21 @@ func NewAuthMiddleware(jwtService *jwt.JWTService) *AuthMiddleware {
 	return &AuthMiddleware{jwtService: jwtService}
 }
 
-func (m *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		// Get token from Authorization header
-		authHeader := r.Header.Get("Authorization")
+		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			response.Error(w, http.StatusUnauthorized, "unauthorized", "missing authorization header")
+			response.ErrorGin(c, http.StatusUnauthorized, "unauthorized", "missing authorization header")
+			c.Abort()
 			return
 		}
 
 		// Extract token from "Bearer <token>"
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			response.Error(w, http.StatusUnauthorized, "unauthorized", "invalid authorization format")
+			response.ErrorGin(c, http.StatusUnauthorized, "unauthorized", "invalid authorization format")
+			c.Abort()
 			return
 		}
 
@@ -43,24 +43,30 @@ func (m *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 		// Validate token
 		claims, err := m.jwtService.ValidateToken(token)
 		if err != nil {
-			response.Error(w, http.StatusUnauthorized, "unauthorized", err.Error())
+			response.ErrorGin(c, http.StatusUnauthorized, "unauthorized", err.Error())
+			c.Abort()
 			return
 		}
 
-		// Add user info to context
-		ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
-		ctx = context.WithValue(ctx, UserEmailKey, claims.Email)
+		// Add user info to Gin context
+		c.Set(UserIDKey, claims.UserID)
+		c.Set(UserEmailKey, claims.Email)
 
-		// Call next handler
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+		// Continue to next handler
+		c.Next()
+	}
 }
 
-// Helper function to get user ID from context
-func GetUserID(ctx context.Context) int64 {
-	userID, ok := ctx.Value(UserIDKey).(int64)
-	if !ok {
+// Helper function to get user ID from Gin context
+func GetUserIDFromGin(c *gin.Context) int64 {
+	userID, exists := c.Get(UserIDKey)
+	if !exists {
 		return 0
 	}
-	return userID
+
+	if id, ok := userID.(int64); ok {
+		return id
+	}
+
+	return 0
 }

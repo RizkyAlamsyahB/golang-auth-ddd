@@ -1,14 +1,14 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
-	"github.com/rizkyalamsyahb/library-golang/internal/application/dto"
-	"github.com/rizkyalamsyahb/library-golang/internal/application/usecase"
-	"github.com/rizkyalamsyahb/library-golang/internal/interfaces/http/middleware"
-	"github.com/rizkyalamsyahb/library-golang/internal/interfaces/http/response"
-	"github.com/rizkyalamsyahb/library-golang/pkg/validator"
+	"github.com/gin-gonic/gin"
+	"github.com/rizkyalamsyah_dev/library-golang/internal/application/dto"
+	"github.com/rizkyalamsyah_dev/library-golang/internal/application/usecase"
+	"github.com/rizkyalamsyah_dev/library-golang/internal/interfaces/http/middleware"
+	"github.com/rizkyalamsyah_dev/library-golang/internal/interfaces/http/response"
+	"github.com/rizkyalamsyah_dev/library-golang/pkg/validator"
 )
 
 type AuthHandler struct {
@@ -24,72 +24,72 @@ func NewAuthHandler(authUseCase *usecase.AuthUseCase) *AuthHandler {
 }
 
 // Register handles POST /api/auth/register
-func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) Register(c *gin.Context) {
 	var req dto.RegisterRequest
 
-	// Decode JSON request
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, http.StatusBadRequest, "invalid request body", err.Error())
+	// Bind JSON request
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorGin(c, http.StatusBadRequest, "invalid request body", err.Error())
 		return
 	}
 
 	// Validate request
 	if err := h.validator.Validate(&req); err != nil {
-		response.Error(w, http.StatusBadRequest, "validation failed", err.Error())
+		response.ErrorGin(c, http.StatusBadRequest, "validation failed", err.Error())
 		return
 	}
 
 	// Call use case
-	user, err := h.authUseCase.Register(r.Context(), req)
+	user, err := h.authUseCase.Register(c.Request.Context(), req)
 	if err != nil {
-		response.Error(w, http.StatusBadRequest, "registration failed", err.Error())
+		response.ErrorGin(c, http.StatusBadRequest, "registration failed", err.Error())
 		return
 	}
 
-	response.Success(w, http.StatusCreated, "user registered successfully", user)
+	response.SuccessGin(c, http.StatusCreated, "user registered successfully", user)
 }
 
 // Login handles POST /api/auth/login
-func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest
 
-	// Decode JSON request
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, http.StatusBadRequest, "invalid request body", err.Error())
+	// Bind JSON request
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorGin(c, http.StatusBadRequest, "invalid request body", err.Error())
 		return
 	}
 
 	// Validate request
 	if err := h.validator.Validate(&req); err != nil {
-		response.Error(w, http.StatusBadRequest, "validation failed", err.Error())
+		response.ErrorGin(c, http.StatusBadRequest, "validation failed", err.Error())
 		return
 	}
 
 	// Call use case
-	result, err := h.authUseCase.Login(r.Context(), req)
+	result, err := h.authUseCase.Login(c.Request.Context(), req)
 	if err != nil {
-		response.Error(w, http.StatusUnauthorized, "login failed", err.Error())
+		response.ErrorGin(c, http.StatusUnauthorized, "login failed", err.Error())
 		return
 	}
 
-	response.Success(w, http.StatusOK, "login successful", result)
+	response.SuccessGin(c, http.StatusOK, "login successful", result)
 }
 
 // GetProfile handles GET /api/auth/profile (protected route)
-func (h *AuthHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) GetProfile(c *gin.Context) {
 	// Get user ID from context (set by auth middleware)
-	userID := middleware.GetUserID(r.Context())
+	userID := middleware.GetUserIDFromGin(c)
 	if userID == 0 {
-		response.Error(w, http.StatusUnauthorized, "unauthorized", "invalid user")
+		response.ErrorGin(c, http.StatusUnauthorized, "unauthorized", "invalid user")
 		return
 	}
 
 	// Get user profile
-	user, err := h.authUseCase.GetProfile(r.Context(), userID)
+	user, err := h.authUseCase.GetProfile(c.Request.Context(), userID)
 	if err != nil {
-		response.Error(w, http.StatusNotFound, "user not found", err.Error())
+		response.ErrorGin(c, http.StatusNotFound, "user not found", err.Error())
 		return
 	}
 
-	response.Success(w, http.StatusOK, "profile retrieved successfully", user)
+	response.SuccessGin(c, http.StatusOK, "profile retrieved successfully", user)
 }

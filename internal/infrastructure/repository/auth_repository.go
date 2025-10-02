@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/rizkyalamsyahb/library-golang/internal/domain/auth"
+    "github.com/rizkyalamsyah_dev/library-golang/internal/domain/auth"
 )
 
 type AuthRepository struct {
